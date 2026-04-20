@@ -1,3 +1,8 @@
+# أضف هذه المكتبات للقائمة العلوية
+import subprocess
+import shutil
+
+# ... كود الimports الخاص بك الحالي ...
 import streamlit as st
 import os
 import time
@@ -14,6 +19,43 @@ from langchain_core.chat_history import InMemoryChatMessageHistory
 from tavily import TavilyClient
 
 load_dotenv()
+
+# ─────────────────────────────────────
+# دالة تحميل قاعدة البيانات من المخزن
+# ─────────────────────────────────────
+
+DATA_REPO = "https://github.com/YOUR_USERNAME/marah-data.git" # عدل الرابط ليناسبك
+DB_DIR = "university_db_app"
+
+def download_db_if_missing():
+    # إذا المجلد موجود ومليان، لا نحتاج للتحميل
+    if os.path.exists(DB_DIR) and os.listdir(DB_DIR):
+        print("✅ Database exists.")
+        return
+
+    print("📥 Downloading DB from GitHub...")
+    try:
+        # نزيل نسخة خفيفة جداً (Depth 1) لتسريع العملية
+        subprocess.run([
+            "git", "clone", "--depth", "1", "--single-branch",
+            DATA_REPO, "temp_db"
+        ], check=True)
+
+        # نقل الملفات
+        if os.path.exists("temp_db/university_db_app"):
+            shutil.move("temp_db/university_db_app", DB_DIR)
+            print("✅ Downloaded Successfully!")
+        else:
+            print("⚠️ DB folder not found in repo.")
+
+        # تنظيف الملفات المؤقتة
+        shutil.rmtree("temp_db")
+    except Exception as e:
+        print(f"⚠️ Download Error: {e}")
+
+# استدعاء الدالة فور تشغيل التطبيق
+download_db_if_missing()
+
 # استدعاء دالة البناء
 try:
     from build_db_app import build_database
