@@ -1,13 +1,8 @@
-# أضف هذه المكتبات للقائمة العلوية
-import subprocess
-import shutil
-
-# ... كود الimports الخاص بك الحالي ...
 import streamlit as st
 import os
 import time
 import shutil
-import gc
+import subprocess
 from datetime import datetime
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -21,91 +16,58 @@ from tavily import TavilyClient
 load_dotenv()
 
 # ─────────────────────────────────────
-# دالة تحميل قاعدة البيانات من المخزن
+# 1. إعدادات رابط قاعدة البيانات (عدله قبل الرفع!)
 # ─────────────────────────────────────
 
-DATA_REPO = "https://github.com/YOUR_USERNAME/marah-data.git" # عدل الرابط ليناسبك
+# ⚠️ استبدل YOUR_USERNAME باسم المستخدم الخاص بك في جيت هاب
+# ⚠️ تأكد أن marah-data هو اسم المستودع الثاني
+DATA_REPO = "https://github.com/marah-aljabali/marah-chat-db.git" 
 DB_DIR = "university_db_app"
 
 def download_db_if_missing():
     # إذا المجلد موجود ومليان، لا نحتاج للتحميل
     if os.path.exists(DB_DIR) and os.listdir(DB_DIR):
-        print("✅ Database exists.")
-        return
+        print("✅ Database exists locally.")
+        # نحاول أيضاً التأكد من وجود ملف التاريخ
+        if not os.path.exists("last_update.txt"):
+            # إذا لم يوجد ملف التاريخ، نحاول جلبه مجدداً
+            pass 
+        else:
+            return
 
     print("📥 Downloading DB from GitHub...")
     try:
+        # تنظيف أي ملفات مؤقتة قديمة
+        if os.path.exists("temp_db"):
+            shutil.rmtree("temp_db")
+            
         # نزيل نسخة خفيفة جداً (Depth 1) لتسريع العملية
         subprocess.run([
             "git", "clone", "--depth", "1", "--single-branch",
             DATA_REPO, "temp_db"
         ], check=True)
 
-        # نقل الملفات
+        # نقل مجلد قاعدة البيانات
         if os.path.exists("temp_db/university_db_app"):
+            if os.path.exists(DB_DIR):
+                shutil.rmtree(DB_DIR)
             shutil.move("temp_db/university_db_app", DB_DIR)
-            print("✅ Downloaded Successfully!")
+            print("✅ Database downloaded successfully!")
         else:
             print("⚠️ DB folder not found in repo.")
 
+        # نقل ملف التاريخ (last_update.txt) لعرضه في السايدبار
+        if os.path.exists("temp_db/last_update.txt"):
+            shutil.move("temp_db/last_update.txt", "last_update.txt")
+
         # تنظيف الملفات المؤقتة
         shutil.rmtree("temp_db")
+        
     except Exception as e:
-        print(f"⚠️ Download Error: {e}")
+        st.warning(f"Could not download DB (Using fallback or error): {e}")
 
-# استدعاء الدالة فور تشغيل التطبيق
+# استدعاء الدالة فور تشغيل التطبيق (قبل أي شيء آخر)
 download_db_if_missing()
-
-# استدعاء دالة البناء
-try:
-    from build_db_app import build_database
-except ImportError:
-    build_database = None
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 🚀 UPDATE LOGIC (يجب أن يكون في البداية قبل تحميل أي شيء)
-# ─────────────────────────────────────────────────────────────────────────────
-
-if st.session_state.get("trigger_update", False):
-    # 1. إظهار شاشة التحديث
-    st.markdown("""
-    <div class="fullscreen-overlay">
-        <div class="building-anim">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </div>
-        <div class="overlay-text">Updating Database...</div>
-        <div class="overlay-sub">Cleaning old files and building new ones...</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    try:
-        db_path = "university_db_app"
-        
-        # 2. حذف قاعدة البيانات القديمة (آمن لأننا لم نقم بتحميلها بعد)
-        if os.path.exists(db_path):
-            shutil.rmtree(db_path)
-            time.sleep(1) # انتظار تأكيد الحذف
-        
-        # 3. بناء قاعدة البيانات
-        if build_database:
-            build_database()
-        else:
-            raise Exception("Build module not found.")
-        
-        # 4. إنهاء التحديث
-        st.session_state.trigger_update = False # إزالة الإشارة
-        st.success("✅ Updated Successfully!")
-        time.sleep(1)
-        st.rerun() # إعادة تشغيل لتحميل البيانات الجديدة
-        
-    except Exception as e:
-        st.error(f"Update Failed: {e}")
-        time.sleep(3)
-        st.stop() # إيقاف التنفيذ
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG
@@ -130,7 +92,7 @@ st.markdown("""
 :root {
     --navy:   #0f1f3d;
     --teal:   #0d9488;
-    --amber:  #f59e0b;
+    --amber:  f59e0b;
     --pass:   #10b981;
     --fail:   #ef4444;
     --cream:  #f8f7f4;
@@ -184,7 +146,6 @@ html, body, [class*="css"] {
 [data-testid="stChatMessage"] {
     background-color: transparent !important;
 }
-/* رسائل المستخدم */
 [data-testid="stChatMessage"]:has([data-testid="chat-avatar-user"]) {
     display: flex;
     justify-content: flex-end;
@@ -196,7 +157,6 @@ html, body, [class*="css"] {
     border-radius: 16px 16px 0 16px;
     box-shadow: var(--shadow);
 }
-/* رسائل المساعد */
 [data-testid="stChatMessage"]:has([data-testid="chat-avatar-assistant"]) .stMarkdown {
     background-color: #fff;
     color: var(--navy);
@@ -262,54 +222,6 @@ html, body, [class*="css"] {
 @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* ── FULL SCREEN OVERLAY ── */
-.fullscreen-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: #ffffff;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    animation: fadeIn 0.5s ease-out;
-}
-.building-anim {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 10px;
-    height: 60px;
-    margin-bottom: 30px;
-}
-.bar {
-    width: 15px;
-    background-color: var(--navy);
-    animation: stack 1.5s infinite ease-in-out;
-    border-radius: 4px 4px 0 0;
-}
-.bar:nth-child(1) { height: 20px; animation-delay: 0.0s; background-color: var(--navy); }
-.bar:nth-child(2) { height: 35px; animation-delay: 0.2s; background-color: var(--teal); }
-.bar:nth-child(3) { height: 50px; animation-delay: 0.4s; background-color: var(--amber); }
-.bar:nth-child(4) { height: 25px; animation-delay: 0.6s; background-color: var(--navy); }
-.bar:nth-child(5) { height: 40px; animation-delay: 0.8s; background-color: var(--teal); }
-@keyframes stack { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.4); } }
-
-.overlay-text {
-    font-family: 'DM Serif Display', serif;
-    font-size: 2rem;
-    color: var(--navy);
-    margin-bottom: 10px;
-}
-.overlay-sub {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1rem;
-    color: var(--slate);
-}
-
 /* ── Typing Cursor Effect ── */
 .typing-cursor {
     display: inline-block;
@@ -322,7 +234,7 @@ html, body, [class*="css"] {
 }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-/* ── Info/Warning Boxes ── */
+/* ── Info Boxes ── */
 .info-box {
     background: #eff6ff;
     border-left: 4px solid #3b82f6;
@@ -330,15 +242,6 @@ html, body, [class*="css"] {
     padding: 10px 14px; 
     font-size: .8rem; 
     color: #1e40af;
-    margin-bottom: 10px;
-}
-.warn-box {
-    background: #fefce8;
-    border-left: 4px solid var(--amber);
-    border-radius: 0 10px 10px 0;
-    padding: 10px 14px; 
-    font-size: .8rem; 
-    color: #92400e;
     margin-bottom: 10px;
 }
 
@@ -368,7 +271,7 @@ html, body, [class*="css"] {
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LOADING RESOURCES (فقط إذا لم يكن هناك تحديث)
+# LOADING RESOURCES
 # ─────────────────────────────────────────────────────────────────────────────
 
 load_overlay = st.empty()
@@ -384,9 +287,12 @@ load_overlay.markdown("""
 
 @st.cache_resource
 def load_components():
-    time.sleep(1) 
+    # تأخير بسيط لضمان تحميل قاعدة البيانات
+    while not os.path.exists(DB_DIR) or not os.listdir(DB_DIR):
+        time.sleep(1)
+        
     embeddings = HuggingFaceEmbeddings(model_name="paraphrase-multilingual-MiniLM-L12-v2")
-    db = Chroma(persist_directory="university_db_app", embedding_function=embeddings)
+    db = Chroma(persist_directory=DB_DIR, embedding_function=embeddings)
     retriever = db.as_retriever(search_kwargs={"k": 5})
     
     # تفعيل الـ Streaming الحقيقي
@@ -397,7 +303,7 @@ def load_components():
     )
     return retriever, llm
 
-# تحميل المكونات (لن يتم الوصول لهذا السطر إلا إذا لم يحدث تحديث)
+# تحميل المكونات
 try:
     retriever, llm = load_components()
     load_overlay.empty()
@@ -438,65 +344,27 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SIDEBAR & BUTTON LOGIC (فقط وضع الإشارة)
+# SIDEBAR
 # ─────────────────────────────────────────────────────────────────────────────
 
 with st.sidebar:
     st.markdown("### ⚙️ System Status")
     
-    db_exists = os.path.exists("university_db_app")
+    # قراءة تاريخ آخر تحديث من الملف الذي نزلناه
     last_update = "Unknown"
-    needs_update = False 
+    if os.path.exists("last_update.txt"):
+        with open("last_update.txt", "r", encoding="utf-8") as f:
+            last_update = f.read().strip()
     
-    if db_exists:
-        if os.path.exists("last_update.txt"):
-            with open("last_update.txt", "r", encoding="utf-8") as f:
-                last_update_str = f.read().strip()
-                last_update = last_update_str
-                try:
-                    last_date = datetime.strptime(last_update_str, "%Y-%m-%d %H:%M:%S")
-                    days_diff = (datetime.now() - last_date).days
-                    if days_diff >= 7:
-                        needs_update = True
-                except:
-                    pass
-    else:
-        needs_update = True
-
-    st.info(f"📅 **{last_update}**")
-
-    if needs_update and db_exists:
-        st.markdown("""
-        <div class="warn-box">
-        ⚠️ Old DB (7+ days).<br>Update recommended.
-        </div>
-        """, unsafe_allow_html=True)
-    elif not needs_update and db_exists:
-        st.success("✅ DB is fresh.")
+    st.info(f"📅 **Last Update:** {last_update}")
     
     st.markdown("---")
     st.markdown("### 🔄 Database")
     
-    if db_exists:
-        st.metric("Status", "Ready")
-    else:
-        st.metric("Status", "Missing", delta_color="inverse")
-
-    # الزر لا يقوم بالتحديث، بل يضع "الإشارة" فقط
-    update_clicked = st.button(
-        "Update Now", 
-        use_container_width=True, 
-        disabled=not needs_update,
-        help="Click to refresh database knowledge."
-    )
+    db_status = "Ready" if os.path.exists(DB_DIR) else "Missing"
+    st.metric("Status", db_status)
     
-    if update_clicked:
-        # وضع الإشارة لإجبار إعادة التشغيل في بداية السكريبت
-        st.session_state.trigger_update = True
-        st.rerun()
-
-    if not needs_update and db_exists:
-        st.caption("DB is fresh. Update disabled until 7 days.")
+    st.caption("🤖 Auto-updates daily via GitHub Actions.")
 
     # الفوتر
     st.markdown("---")
@@ -591,7 +459,3 @@ if question:
 
         except Exception as e:
             st.error(f"حدث خطأ: {str(e)}")
-
-
-
- 
