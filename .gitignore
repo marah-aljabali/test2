@@ -1,5 +1,4 @@
 university_db_app
+last_update.txt
 .env
 __pycache__
-*.pyc
-last_update.txt
