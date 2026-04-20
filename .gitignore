@@ -1,0 +1,5 @@
+university_db_app
+.env
+__pycache__
+*.pyc
+last_update.txt
