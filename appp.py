@@ -21,8 +21,8 @@ load_dotenv()
 
 # ⚠️ استبدل YOUR_USERNAME باسم المستخدم الخاص بك في جيت هاب
 # ⚠️ تأكد أن marah-data هو اسم المستودع الثاني
-DATA_REPO = "https://github.com/marah-aljabali/marah-chat-db.git "
-DB_DIR = "university_db_app"
+DATA_REPO = "https://github.com/marah-aljabali/marah-chat-db.git"
+DB_DIR = "University_db_app"
 
 def download_db_if_missing():
     # إذا المجلد موجود ومليان، لا نحتاج للتحميل
