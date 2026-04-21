@@ -22,7 +22,7 @@ load_dotenv()
 # ⚠️ استبدل YOUR_USERNAME باسم المستخدم الخاص بك في جيت هاب
 # ⚠️ تأكد أن marah-data هو اسم المستودع الثاني
 DATA_REPO = "https://github.com/marah-aljabali/marah-chat-db.git"
-DB_DIR = "University_db_app"
+DB_DIR = "university_db_app"
 
 def download_db_if_missing():
     # إذا المجلد موجود ومليان، لا نحتاج للتحميل
@@ -48,10 +48,10 @@ def download_db_if_missing():
         ], check=True)
 
         # نقل مجلد قاعدة البيانات
-        if os.path.exists("temp_db/University_db_app"):
+        if os.path.exists("temp_db/university_db_app"):
             if os.path.exists(DB_DIR):
                 shutil.rmtree(DB_DIR)
-            shutil.move("temp_db/University_db_app", DB_DIR)
+            shutil.move("temp_db/university_db_app", DB_DIR)
             print("✅ Database downloaded successfully!")
         else:
             print("⚠️ DB folder not found in repo.")
