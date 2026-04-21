@@ -12,7 +12,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from tavily import TavilyClient
-import zipfile 
+import requests
+import zipfile
 
 load_dotenv()
 
@@ -31,7 +32,6 @@ DB_DIR = "university_db_app"
 # ─────────────────────────────────────
 # رابط مباشر لملف ZIP المرفوع
 DB_ZIP_URL = "https://github.com/marah-aljabali/marah-chat-db/raw/refs/heads/main/db.zip"
-
 def download_db_if_missing():
     # إذا المجلد موجود ومليان، لا نحتاج للتحميل
     if os.path.exists(DB_DIR) and os.listdir(DB_DIR):
@@ -50,7 +50,7 @@ def download_db_if_missing():
             
             print("📦 Unzipping files...")
             
-            # 2. فك الضغط
+            # 2. فك الضغط للمجلد الحالي
             with zipfile.ZipFile("db_temp.zip", 'r') as zip_ref:
                 zip_ref.extractall(".")
             
@@ -61,11 +61,11 @@ def download_db_if_missing():
                 os.remove("db_temp.zip")
                 
         else:
-            print("⚠️ Could not download ZIP file.")
+            print("⚠️ Could not download ZIP file (Error 404 or Connection Error).")
             
     except Exception as e:
         st.warning(f"⚠️ Download Error: {e}")
-
+        
 # استدعاء الدالة فور تشغيل التطبيق (قبل أي شيء آخر)
 download_db_if_missing()
 
