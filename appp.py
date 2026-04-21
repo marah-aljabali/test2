@@ -12,6 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.chat_history import InMemoryChatMessageHistory
 from tavily import TavilyClient
+import zipfile 
 
 load_dotenv()
 
@@ -24,47 +25,46 @@ load_dotenv()
 DATA_REPO = "https://github.com/marah-aljabali/marah-chat-db.git"
 DB_DIR = "university_db_app"
 
+
+# ─────────────────────────────────────
+# دالة تحميل قاعدة البيانات (نسخة ZIP)
+# ─────────────────────────────────────
+# رابط مباشر لملف ZIP المرفوع
+DB_ZIP_URL = "https://github.com/marah-aljabali/marah-chat-db/blob/main/db.zip"
+
 def download_db_if_missing():
     # إذا المجلد موجود ومليان، لا نحتاج للتحميل
     if os.path.exists(DB_DIR) and os.listdir(DB_DIR):
         print("✅ Database exists locally.")
-        # نحاول أيضاً التأكد من وجود ملف التاريخ
-        if not os.path.exists("last_update.txt"):
-            # إذا لم يوجد ملف التاريخ، نحاول جلبه مجدداً
-            pass 
-        else:
-            return
+        return
 
-    print("📥 Downloading DB from GitHub...")
+    print("📥 Downloading DB from GitHub (ZIP)...")
     try:
-        # تنظيف أي ملفات مؤقتة قديمة
-        if os.path.exists("temp_db"):
-            shutil.rmtree("temp_db")
-            
-        # نزيل نسخة خفيفة جداً (Depth 1) لتسريع العملية
-        subprocess.run([
-            "git", "clone", "--depth", "1", "--single-branch",
-            DATA_REPO, "temp_db"
-        ], check=True)
-
-        # نقل مجلد قاعدة البيانات
-        if os.path.exists("temp_db/university_db_app"):
-            if os.path.exists(DB_DIR):
-                shutil.rmtree(DB_DIR)
-            shutil.move("temp_db/university_db_app", DB_DIR)
-            print("✅ Database downloaded successfully!")
-        else:
-            print("⚠️ DB folder not found in repo.")
-
-        # نقل ملف التاريخ (last_update.txt) لعرضه في السايدبار
-        if os.path.exists("temp_db/last_update.txt"):
-            shutil.move("temp_db/last_update.txt", "last_update.txt")
-
-        # تنظيف الملفات المؤقتة
-        shutil.rmtree("temp_db")
+        # 1. تحميل ملف الـ ZIP
+        response = requests.get(DB_ZIP_URL)
         
+        if response.status_code == 200:
+            # حفظ الملف مؤقتاً
+            with open("db_temp.zip", "wb") as f:
+                f.write(response.content)
+            
+            print("📦 Unzipping files...")
+            
+            # 2. فك الضغط
+            with zipfile.ZipFile("db_temp.zip", 'r') as zip_ref:
+                zip_ref.extractall(".")
+            
+            print("✅ Database downloaded and extracted successfully!")
+            
+            # 3. حذف ملف الـ ZIP المؤقت لتوفير المساحة
+            if os.path.exists("db_temp.zip"):
+                os.remove("db_temp.zip")
+                
+        else:
+            print("⚠️ Could not download ZIP file.")
+            
     except Exception as e:
-        st.warning(f"Could not download DB (Using fallback or error): {e}")
+        st.warning(f"⚠️ Download Error: {e}")
 
 # استدعاء الدالة فور تشغيل التطبيق (قبل أي شيء آخر)
 download_db_if_missing()
