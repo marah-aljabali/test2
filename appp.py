@@ -30,7 +30,7 @@ DB_DIR = "university_db_app"
 # دالة تحميل قاعدة البيانات (نسخة ZIP)
 # ─────────────────────────────────────
 # رابط مباشر لملف ZIP المرفوع
-DB_ZIP_URL = "https://github.com/marah-aljabali/marah-chat-db/blob/main/db.zip"
+DB_ZIP_URL = "https://github.com/marah-aljabali/marah-chat-db/row/main/db.zip"
 
 def download_db_if_missing():
     # إذا المجلد موجود ومليان، لا نحتاج للتحميل
